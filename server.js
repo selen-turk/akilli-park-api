@@ -5,6 +5,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 require('dotenv').config();
+const cron = require('node-cron');
+const axios = require('axios');
 
 const app = express();
 app.use(cors());
@@ -171,6 +173,40 @@ app.get('/api/otoparklar/ispark', async (req, res) => {
     }
 });
 
+
+cron.schedule('0 * * * *', async () => {
+    console.log('⏳ İSPARK verileri çekiliyor ve veritabanı güncelleniyor...');
+    try {
+        
+        const response = await axios.get('https://api.ibb.gov.tr/ispark/Park'); 
+        const otoparklar = response.data;
+
+        for (const park of otoparklar) {
+            
+            const query = `
+                INSERT INTO otoparklar (ispark_id, otopark_adi, ilce, kapasite, bos_kapasite, konum)
+                VALUES ($1, $2, $3, $4, $5, ST_SetSRID(ST_MakePoint($6, $7), 4326))
+                ON CONFLICT (ispark_id) 
+                DO UPDATE SET bos_kapasite = EXCLUDED.bos_kapasite;
+            `;
+           
+            const values = [
+                park.parkID, 
+                park.parkName, 
+                park.ilce, 
+                park.capacity, 
+                park.emptyCapacity, 
+                park.lng, // Boylam
+                park.lat  // Enlem
+            ];
+            
+            await pool.query(query, values); 
+        }
+        console.log('✅ İSPARK verileri veritabanına başarıyla kaydedildi/güncellendi!');
+    } catch (error) {
+        console.error('❌ İSPARK verileri güncellenirken hata:', error.message);
+    }
+});
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Sunucu http://localhost:${PORT} adresinde çalışıyor...`);
