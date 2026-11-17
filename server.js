@@ -232,6 +232,40 @@ app.get('/api/liderlik-tablosu', async (req, res) => {
     }
 });
 
+
+app.post('/api/puan-ekle', async (req, res) => {
+    try {
+        const { kullanici_id, kazanilan_puan } = req.body;
+
+        if (!kullanici_id || !kazanilan_puan) {
+            return res.status(400).json({ hata: 'Kullanıcı ID ve kazanılan puan gereklidir.' });
+        }
+
+        
+        const query = `
+            UPDATE kullanicilar 
+            SET toplam_puan = toplam_puan + $1 
+            WHERE id = $2 
+            RETURNING id, ad_soyad, toplam_puan;
+        `;
+        
+        
+        const { rows } = await pool.query(query, [kazanilan_puan, kullanici_id]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ hata: 'Kullanıcı bulunamadı.' });
+        }
+
+        res.json({ 
+            mesaj: 'Puan başarıyla eklendi! 🎉', 
+            kullanici: rows[0] 
+        });
+    } catch (hata) {
+        console.error('Puan ekleme hatası:', hata);
+        res.status(500).json({ hata: 'Puan eklenirken bir sorun oluştu.' });
+    }
+});
+
 cron.schedule('0 * * * *', async () => {
     console.log('⏳ İSPARK verileri çekiliyor ve veritabanı güncelleniyor...');
     try {
