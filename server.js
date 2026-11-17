@@ -212,6 +212,26 @@ app.post('/api/fotograf-yukle', upload.single('fotograf'), async (req, res) => {
 });
 
 
+app.get('/api/liderlik-tablosu', async (req, res) => {
+    try {
+        
+        const query = `
+            SELECT id, ad_soyad, toplam_puan 
+            FROM kullanicilar 
+            ORDER BY toplam_puan DESC NULLS LAST, id ASC 
+            LIMIT 10;
+        `;
+        
+        
+        const { rows } = await pool.query(query); 
+        
+        res.json(rows); 
+    } catch (hata) {
+        console.error('Liderlik tablosu hatası:', hata);
+        res.status(500).json({ hata: 'Liderlik tablosu alınamadı.' });
+    }
+});
+
 cron.schedule('0 * * * *', async () => {
     console.log('⏳ İSPARK verileri çekiliyor ve veritabanı güncelleniyor...');
     try {
