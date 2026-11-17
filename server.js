@@ -6,7 +6,6 @@ const jwt = require('jsonwebtoken');
 const axios = require('axios');
 require('dotenv').config();
 const cron = require('node-cron');
-const axios = require('axios');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
