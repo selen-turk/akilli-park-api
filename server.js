@@ -7,6 +7,9 @@ const axios = require('axios');
 require('dotenv').config();
 const cron = require('node-cron');
 const axios = require('axios');
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+const fs = require('fs');
 
 const app = express();
 app.use(cors());
@@ -170,6 +173,42 @@ app.get('/api/otoparklar/ispark', async (req, res) => {
         res.json(otoparklar);
     } catch (err) {
         res.status(500).json({ hata: 'İSPARK verileri alınamadı.', detay: err.message });
+    }
+});
+
+
+cloudinary.config({ 
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
+    api_key: process.env.CLOUDINARY_API_KEY, 
+    api_secret: process.env.CLOUDINARY_API_SECRET 
+});
+
+const upload = multer({ dest: 'uploads/' }); 
+
+
+app.post('/api/fotograf-yukle', upload.single('fotograf'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ hata: 'Lütfen bir fotoğraf seçin.' });
+        }
+
+        
+        const sonuc = await cloudinary.uploader.upload(req.file.path, {
+            folder: 'akilli_park_fotograflar' 
+        });
+
+        
+        fs.unlinkSync(req.file.path);
+
+        
+        res.json({ 
+            mesaj: 'Fotoğraf başarıyla buluta yüklendi!',
+            fotograf_url: sonuc.secure_url 
+        });
+
+    } catch (hata) {
+        console.error('Fotoğraf yükleme hatası:', hata);
+        res.status(500).json({ hata: 'Yükleme başarısız oldu.', detay: hata.message });
     }
 });
 
